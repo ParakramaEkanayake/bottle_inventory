@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-teal-50 text-ink font-body;
+}
+
+::selection {
+  background-color: #E2A33B55;
+}
+
+.card {
+  @apply bg-white rounded-xl border border-teal-100 shadow-sm;
+}
+
+.btn-primary {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg bg-teal-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-600 disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+.btn-secondary {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg border border-teal-500 px-4 py-2 text-sm font-semibold text-teal-500 transition hover:bg-teal-50;
+}
+
+.input-field {
+  @apply w-full rounded-lg border border-teal-100 bg-white px-3 py-2 text-sm text-ink placeholder-slate-400 focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-400/30;
+  /* 16px minimum on phones stops iOS Safari from auto-zooming when a field is tapped */
+  font-size: 16px;
+}
+
+@media (min-width: 640px) {
+  .input-field {
+    font-size: 0.875rem;
+  }
+}
+
+.label {
+  @apply mb-1 block text-xs font-semibold uppercase tracking-wide text-teal-600;
+}
