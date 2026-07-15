@@ -7,6 +7,7 @@ const StockManagement = () => {
   const [stock, setStock] = useState([]);
   const [bottleType, setBottleType] = useState("190ml");
   const [quantity, setQuantity] = useState("");
+  const [noOfCases, setNoOfCases] = useState("");
   const [note, setNote] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -23,6 +24,20 @@ const StockManagement = () => {
     loadTransactions();
   }, []);
 
+  const handleQuantityChange = (value) => {
+    setQuantity(value);
+    if (value === "") {
+      setNoOfCases("");
+      return;
+    }
+    const parsed = Number(value);
+    if (!Number.isNaN(parsed) && parsed > 0) {
+      setNoOfCases((parsed / 30).toString());
+    } else {
+      setNoOfCases("");
+    }
+  };
+
   const handleAddStock = async (e) => {
     e.preventDefault();
     setError("");
@@ -33,11 +48,17 @@ const StockManagement = () => {
     }
     setSubmitting(true);
     try {
-      const res = await api.post("/stock/add", { bottleType, quantity: Number(quantity), note });
+      const res = await api.post("/stock/add", {
+        bottleType,
+        quantity: Number(quantity),
+        noOfCases: noOfCases === "" ? undefined : Number(noOfCases),
+        note,
+      });
       setMessage(
         `Added ${quantity} x ${bottleType}. Expense logged: LKR ${res.data.transaction.totalCost.toLocaleString()}`
       );
       setQuantity("");
+      setNoOfCases("");
       setNote("");
       loadStock();
     } catch (err) {
@@ -121,11 +142,22 @@ const StockManagement = () => {
               type="number"
               className="input-field"
               value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
+              onChange={(e) => handleQuantityChange(e.target.value)}
               placeholder="e.g. 500"
             />
           </div>
-          <div className="md:col-span-2">
+          <div>
+            <label className="label">No of cases</label>
+            <input
+              type="number"
+              step="0.01"
+              className="input-field"
+              value={noOfCases}
+              onChange={(e) => setNoOfCases(e.target.value)}
+              placeholder="e.g. 3"
+            />
+          </div>
+          <div className="md:col-span-1">
             <label className="label">Note (optional)</label>
             <input
               type="text"
@@ -156,6 +188,7 @@ const StockManagement = () => {
                   <th className="px-5 py-2 bg-slate-50">Date</th>
                   <th className="px-5 py-2 bg-slate-50">Bottle</th>
                   <th className="px-5 py-2 bg-slate-50">Quantity</th>
+                  <th className="px-5 py-2 bg-slate-50">No of cases</th>
                   <th className="px-5 py-2 bg-slate-50">Cost / unit</th>
                   <th className="px-5 py-2 bg-slate-50">Total cost</th>
                   <th className="px-5 py-2 bg-slate-50">Added by</th>
@@ -165,7 +198,7 @@ const StockManagement = () => {
               <tbody className="divide-y divide-slate-100">
                 {transactions.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-5 py-4 text-slate-500">No purchase history found.</td>
+                    <td colSpan={8} className="px-5 py-4 text-slate-500">No purchase history found.</td>
                   </tr>
                 )}
                 {transactions.map((t) => (
@@ -173,6 +206,7 @@ const StockManagement = () => {
                     <td className="px-5 py-3">{new Date(t.createdAt).toLocaleString()}</td>
                     <td className="px-5 py-3">{t.bottleType}</td>
                     <td className="px-5 py-3">{t.quantity}</td>
+                    <td className="px-5 py-3">{t.noOfCases ?? "-"}</td>
                     <td className="px-5 py-3">LKR {t.costPricePerUnit?.toLocaleString()}</td>
                     <td className="px-5 py-3">LKR {t.totalCost?.toLocaleString()}</td>
                     <td className="px-5 py-3">{t.addedBy?.name || "-"}</td>

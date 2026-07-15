@@ -6,6 +6,7 @@ const StockTransactionSchema = new mongoose.Schema(
   {
     bottleType: { type: String, enum: ["190ml", "250ml"], required: true },
     quantity: { type: Number, required: true, min: 1 },
+    noOfCases: { type: Number, default: 0 },
     costPricePerUnit: { type: Number, required: true },
     totalCost: { type: Number, required: true }, // quantity * costPricePerUnit, auto-computed
     addedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },

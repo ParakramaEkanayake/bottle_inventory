@@ -31,6 +31,7 @@ const Expenses = () => {
                 <th className="px-5 py-2">Date</th>
                 <th className="px-5 py-2">Bottle type</th>
                 <th className="px-5 py-2">Quantity</th>
+                <th className="px-5 py-2">No of cases</th>
                 <th className="px-5 py-2">Cost / unit</th>
                 <th className="px-5 py-2">Total cost</th>
                 <th className="px-5 py-2">Added by</th>
@@ -43,6 +44,7 @@ const Expenses = () => {
                   <td className="px-5 py-2 text-slate-500">{new Date(t.createdAt).toLocaleDateString()}</td>
                   <td className="px-5 py-2 font-medium text-ink">{t.bottleType}</td>
                   <td className="px-5 py-2">{t.quantity}</td>
+                  <td className="px-5 py-2">{t.noOfCases ?? "-"}</td>
                   <td className="px-5 py-2">LKR {t.costPricePerUnit}</td>
                   <td className="px-5 py-2 font-semibold text-ink">LKR {t.totalCost.toLocaleString()}</td>
                   <td className="px-5 py-2 text-slate-500">{t.addedBy?.name}</td>
@@ -51,7 +53,7 @@ const Expenses = () => {
               ))}
               {transactions.length === 0 && (
                 <tr className="divide-x divide-slate-100">
-                  <td colSpan={7} className="px-5 py-4 text-center text-slate-400">No stock purchases recorded yet.</td>
+                  <td colSpan={8} className="px-5 py-4 text-center text-slate-400">No stock purchases recorded yet.</td>
                 </tr>
               )}
             </tbody>

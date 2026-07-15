@@ -23,6 +23,9 @@ const RouteDetail = () => {
 
   useEffect(() => {
     load();
+    const handleRequirementsUpdate = () => load();
+    window.addEventListener("routeRequirementsUpdated", handleRequirementsUpdate);
+    return () => window.removeEventListener("routeRequirementsUpdated", handleRequirementsUpdate);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routeId]);
 
@@ -30,6 +33,18 @@ const RouteDetail = () => {
   if (!data) return <p className="text-teal-500">Loading route...</p>;
 
   const completedCount = data.shops.filter((s) => s.status === "completed").length;
+  const bottleTypes = ["190ml", "250ml"];
+  const routeSummary = bottleTypes.reduce((acc, type) => {
+    const items = requirements.filter((item) => item.bottleType === type);
+    const totalRequired = items.reduce((sum, item) => sum + Number(item.requiredQuantity || 0), 0);
+    const fulfilled = items.reduce((sum, item) => sum + Number(item.fulfilledQuantity || 0), 0);
+    acc[type] = {
+      totalRequired,
+      fulfilled,
+      remaining: Math.max(0, totalRequired - fulfilled),
+    };
+    return acc;
+  }, {});
 
   return (
     <div>
@@ -45,6 +60,22 @@ const RouteDetail = () => {
       <div className="mt-6 card p-4">
         <h2 className="font-display font-bold text-ink">Planned stock requirements</h2>
         <p className="text-xs text-slate-500">Requirements entered for this route.</p>
+        <div className="mt-3 grid gap-3 md:grid-cols-2">
+          {bottleTypes.map((type) => (
+            <div key={type} className="rounded-lg border border-teal-100 bg-teal-50 p-3">
+              <p className="text-sm font-semibold text-ink">{type}</p>
+              <p className="mt-1 text-sm text-slate-600">
+                Total required: <span className="font-semibold text-ink">{routeSummary[type].totalRequired}</span>
+              </p>
+              <p className="text-sm text-slate-600">
+                Fulfilled: <span className="font-semibold text-ink">{routeSummary[type].fulfilled}</span>
+              </p>
+              <p className="text-sm text-slate-600">
+                Remaining: <span className="font-semibold text-ink">{routeSummary[type].remaining}</span>
+              </p>
+            </div>
+          ))}
+        </div>
         {requirements.length === 0 ? (
           <p className="mt-3 text-sm text-slate-500">No planned requirements yet.</p>
         ) : (

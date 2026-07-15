@@ -89,6 +89,12 @@ const ShopVisit = () => {
       setEmptyCollected(emptyCounts());
       setMissing(emptyCounts());
       api.get(`/stock-requirements/shop/${shopId}`).then((r) => setRequirements(r.data)).catch(() => {});
+      api.get(`/stock-requirements/route/${routeId}`).then((r) => {
+        // Route detail will refresh when the user navigates back; this keeps the current view aligned.
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("routeRequirementsUpdated", { detail: { routeId } }));
+        }
+      }).catch(() => {});
     } catch (err) {
       setError(err.response?.data?.message || "Could not save this visit");
     } finally {

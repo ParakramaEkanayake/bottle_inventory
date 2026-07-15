@@ -24,7 +24,7 @@ router.get("/transactions", protect, async (req, res) => {
 // Automatically computes and logs the company expense for this purchase.
 router.post("/add", protect, allowRoles("owner", "second_owner"), async (req, res) => {
   try {
-    const { bottleType, quantity } = req.body;
+    const { bottleType, quantity, noOfCases } = req.body;
     if (!["190ml", "250ml"].includes(bottleType)) {
       return res.status(400).json({ message: "bottleType must be 190ml or 250ml" });
     }
@@ -32,6 +32,9 @@ router.post("/add", protect, allowRoles("owner", "second_owner"), async (req, re
     if (!qty || qty <= 0) {
       return res.status(400).json({ message: "quantity must be a positive number" });
     }
+
+    const parsedCases = Number(noOfCases);
+    const calculatedCases = Number.isFinite(parsedCases) && parsedCases > 0 ? parsedCases : qty / 30;
 
     const stock = await Stock.findOne({ bottleType });
     if (!stock) return res.status(404).json({ message: "Stock item not configured" });
@@ -43,6 +46,7 @@ router.post("/add", protect, allowRoles("owner", "second_owner"), async (req, re
     const transaction = await StockTransaction.create({
       bottleType,
       quantity: qty,
+      noOfCases: calculatedCases,
       costPricePerUnit: stock.costPrice,
       totalCost,
       addedBy: req.user._id,
