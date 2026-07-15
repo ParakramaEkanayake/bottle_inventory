@@ -6,7 +6,6 @@ const initialForm = {
   name: "",
   description: "",
   price: "",
-  image: "",
 };
 
 const Inquiry = () => {
@@ -40,21 +39,12 @@ const Inquiry = () => {
     setMessage("");
 
     try {
-      const formData = new FormData();
-      formData.append("name", form.name);
-      formData.append("description", form.description);
-      formData.append("price", Number(form.price));
-
-      const imageInput = document.querySelector('input[name="imageFile"]');
-      if (imageInput?.files?.[0]) {
-        formData.append("image", imageInput.files[0]);
-      }
-
-      await api.post("/inquiries", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+      await api.post("/inquiries", {
+        name: form.name,
+        description: form.description,
+        price: Number(form.price),
       });
       setForm(initialForm);
-      if (imageInput) imageInput.value = "";
       setMessage("Inquiry submitted successfully.");
       fetchInquiries();
     } catch (err) {
@@ -92,10 +82,6 @@ const Inquiry = () => {
               <label className="label">Description</label>
               <textarea className="input-field" rows="3" name="description" value={form.description} onChange={handleChange} required />
             </div>
-            <div className="md:col-span-2">
-              <label className="label">Attachment</label>
-              <input className="input-field" type="file" name="imageFile" accept="image/*" />
-            </div>
           </div>
 
           {message && <p className="mt-3 text-sm text-teal-600">{message}</p>}
@@ -123,7 +109,6 @@ const Inquiry = () => {
                   <th className="px-6 py-3">Date</th>
                   <th className="px-6 py-3">Description</th>
                   <th className="px-6 py-3">Price</th>
-                  <th className="px-6 py-3">Image</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -134,15 +119,6 @@ const Inquiry = () => {
                     <td className="px-6 py-3">{new Date(item.createdAt).toLocaleDateString()}</td>
                     <td className="px-6 py-3">{item.description}</td>
                     <td className="px-6 py-3">{item.price}</td>
-                    <td className="px-6 py-3">
-                      {item.image ? (
-                        <a href={`${import.meta.env.VITE_API_URL || "http://localhost:5000"}${item.image}`} target="_blank" rel="noreferrer" className="text-teal-600 underline">
-                          View
-                        </a>
-                      ) : (
-                        "-"
-                      )}
-                    </td>
                   </tr>
                 ))}
               </tbody>
