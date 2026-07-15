@@ -1,7 +1,8 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
+  // ✅ Relative URL — works for both local dev (via Vite proxy) and Vercel prod
+  baseURL: import.meta.env.VITE_API_URL || "/api",
 });
 
 api.interceptors.request.use((config) => {
