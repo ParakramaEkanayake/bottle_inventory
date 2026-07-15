@@ -22,15 +22,15 @@
     },
     {
       "src": "/assets/(.*)",
-      "dest": "/client/dist/assets/$1"
+      "dest": "/client/assets/$1"
     },
     {
-      "src": "/(.*\\.(js|css|ico|png|jpg|jpeg|svg|webp|json))",
-      "dest": "/client/dist/$1"
+      "src": "/(.+\\.(js|css|ico|png|jpg|jpeg|svg|webp|json|woff|woff2|ttf|map))",
+      "dest": "/client/$1"
     },
     {
       "src": "/(.*)",
-      "dest": "/client/dist/index.html"
+      "dest": "/client/index.html"
     }
   ]
 }
