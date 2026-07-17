@@ -14,6 +14,11 @@ const StockManagement = () => {
   const [submitting, setSubmitting] = useState(false);
   const [transactions, setTransactions] = useState([]);
 
+  const bottlesPerCase = {
+    "190ml": 24,
+    "250ml": 30,
+  };
+
   const loadStock = () => api.get("/stock").then((res) => setStock(res.data));
 
   const loadTransactions = () => api.get("/stock/transactions").then((res) => setTransactions(res.data));
@@ -24,16 +29,49 @@ const StockManagement = () => {
     loadTransactions();
   }, []);
 
+  const calculateCasesFromQuantity = (value, type) => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      return "";
+    }
+    return (parsed / bottlesPerCase[type]).toString();
+  };
+
+  const calculateQuantityFromCases = (value, type) => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      return "";
+    }
+    return (parsed * bottlesPerCase[type]).toString();
+  };
+
   const handleQuantityChange = (value) => {
     setQuantity(value);
     if (value === "") {
       setNoOfCases("");
       return;
     }
-    const parsed = Number(value);
-    if (!Number.isNaN(parsed) && parsed > 0) {
-      setNoOfCases((parsed / 30).toString());
+    setNoOfCases(calculateCasesFromQuantity(value, bottleType));
+  };
+
+  const handleCasesChange = (value) => {
+    setNoOfCases(value);
+    if (value === "") {
+      setQuantity("");
+      return;
+    }
+    setQuantity(calculateQuantityFromCases(value, bottleType));
+  };
+
+  const handleBottleTypeChange = (value) => {
+    setBottleType(value);
+
+    if (quantity !== "") {
+      setNoOfCases(calculateCasesFromQuantity(quantity, value));
+    } else if (noOfCases !== "") {
+      setQuantity(calculateQuantityFromCases(noOfCases, value));
     } else {
+      setQuantity("");
       setNoOfCases("");
     }
   };
@@ -131,7 +169,7 @@ const StockManagement = () => {
         <form onSubmit={handleAddStock} className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-4">
           <div>
             <label className="label">Bottle type</label>
-            <select className="input-field" value={bottleType} onChange={(e) => setBottleType(e.target.value)}>
+            <select className="input-field" value={bottleType} onChange={(e) => handleBottleTypeChange(e.target.value)}>
               <option value="190ml">190ml</option>
               <option value="250ml">250ml</option>
             </select>
@@ -153,7 +191,7 @@ const StockManagement = () => {
               step="0.01"
               className="input-field"
               value={noOfCases}
-              onChange={(e) => setNoOfCases(e.target.value)}
+              onChange={(e) => handleCasesChange(e.target.value)}
               placeholder="e.g. 3"
             />
           </div>

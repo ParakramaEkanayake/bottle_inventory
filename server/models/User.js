@@ -12,6 +12,11 @@ const UserSchema = new mongoose.Schema(
       required: true,
     },
     phone: { type: String, default: "" },
+    visitAccess: {
+      distributed: { type: Boolean, default: false },
+      empty: { type: Boolean, default: false },
+      missing: { type: Boolean, default: false },
+    },
     active: { type: Boolean, default: true },
   },
   { timestamps: true }
@@ -35,6 +40,7 @@ UserSchema.methods.toSafeObject = function () {
     email: this.email,
     role: this.role,
     phone: this.phone,
+    visitAccess: this.visitAccess,
     active: this.active,
   };
 };

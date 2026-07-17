@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import api from "../api/axios";
+import { useAuth } from "../context/AuthContext";
 
 const emptyCounts = () => ({ "190ml": "", "250ml": "" });
 
 const ShopVisit = () => {
   const { routeId, shopId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [shop, setShop] = useState(null);
   const [existingVisit, setExistingVisit] = useState(null);
@@ -105,6 +107,8 @@ const ShopVisit = () => {
   if (!shop) return <p className="text-teal-500">Loading shop...</p>;
 
   const outstandingBefore = shop.outstanding;
+  const canViewSection = (section) => user?.role !== "salesman" || Boolean(user?.visitAccess?.[section]);
+  const hasVisitAccess = user?.role !== "salesman" || ["distributed", "empty", "missing"].some(canViewSection);
 
   return (
     <div className="mx-auto max-w-lg">
@@ -203,75 +207,83 @@ const ShopVisit = () => {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-        <div className="card p-4">
-          <h2 className="font-display font-bold text-ink">1. Distributed bottle amount</h2>
-          <p className="text-xs text-slate-500">New full bottles given to the shop right now (this delivery only).</p>
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            {["190ml", "250ml"].map((type) => (
-              <div key={type}>
-                <label className="label">{type}</label>
-                <input
-                  type="number"
-                  min="0"
-                  className="input-field"
-                  value={distributed[type]}
-                  onChange={(e) => setField(setDistributed, type, e.target.value)}
-                />
+      {hasVisitAccess && (
+        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+          {canViewSection("distributed") && (
+            <div className="card p-4">
+              <h2 className="font-display font-bold text-ink">1. Distributed bottle amount</h2>
+              <p className="text-xs text-slate-500">New full bottles given to the shop right now (this delivery only).</p>
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                {["190ml", "250ml"].map((type) => (
+                  <div key={type}>
+                    <label className="label">{type}</label>
+                    <input
+                      type="number"
+                      min="0"
+                      className="input-field"
+                      value={distributed[type]}
+                      onChange={(e) => setField(setDistributed, type, e.target.value)}
+                    />
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
+            </div>
+          )}
 
-        <div className="card p-4">
-          <h2 className="font-display font-bold text-ink">2. Empty bottle amount</h2>
-          <p className="text-xs text-slate-500">Empty bottles collected back from the shop right now (this visit only).</p>
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            {["190ml", "250ml"].map((type) => (
-              <div key={type}>
-                <label className="label">{type}</label>
-                <input
-                  type="number"
-                  min="0"
-                  className="input-field"
-                  value={emptyCollected[type]}
-                  onChange={(e) => setField(setEmptyCollected, type, e.target.value)}
-                />
+          {canViewSection("empty") && (
+            <div className="card p-4">
+              <h2 className="font-display font-bold text-ink">2. Empty bottle amount</h2>
+              <p className="text-xs text-slate-500">Empty bottles collected back from the shop right now (this visit only).</p>
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                {["190ml", "250ml"].map((type) => (
+                  <div key={type}>
+                    <label className="label">{type}</label>
+                    <input
+                      type="number"
+                      min="0"
+                      className="input-field"
+                      value={emptyCollected[type]}
+                      onChange={(e) => setField(setEmptyCollected, type, e.target.value)}
+                    />
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
+            </div>
+          )}
 
-        <div className="card p-4">
-          <h2 className="font-display font-bold text-ink">3. Missing bottle amount</h2>
-          <p className="text-xs text-slate-500">Bottles the shop reports as broken, lost, or unaccounted for, right now.</p>
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            {["190ml", "250ml"].map((type) => (
-              <div key={type}>
-                <label className="label">{type}</label>
-                <input
-                  type="number"
-                  min="0"
-                  className="input-field"
-                  value={missing[type]}
-                  onChange={(e) => setField(setMissing, type, e.target.value)}
-                />
+          {canViewSection("missing") && (
+            <div className="card p-4">
+              <h2 className="font-display font-bold text-ink">3. Missing bottle amount</h2>
+              <p className="text-xs text-slate-500">Bottles the shop reports as broken, lost, or unaccounted for, right now.</p>
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                {["190ml", "250ml"].map((type) => (
+                  <div key={type}>
+                    <label className="label">{type}</label>
+                    <input
+                      type="number"
+                      min="0"
+                      className="input-field"
+                      value={missing[type]}
+                      onChange={(e) => setField(setMissing, type, e.target.value)}
+                    />
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
+          )}
+
+          <div className="card p-4">
+            <label className="label">Notes (optional)</label>
+            <textarea className="input-field" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
           </div>
-        </div>
 
-        <div className="card p-4">
-          <label className="label">Notes (optional)</label>
-          <textarea className="input-field" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
-        </div>
+          {error && <p className="text-sm font-medium text-shopred">{error}</p>}
 
-        {error && <p className="text-sm font-medium text-shopred">{error}</p>}
-
-        <button type="submit" disabled={submitting} className="btn-primary w-full">
-          {submitting ? "Saving..." : existingVisit ? "Add this delivery" : "Save visit"}
-        </button>
-      </form>
+          <button type="submit" disabled={submitting} className="btn-primary w-full">
+            {submitting ? "Saving..." : existingVisit ? "Add this delivery" : "Save visit"}
+          </button>
+        </form>
+      )}
 
       {saved && (
         <div className="mt-4 card border-shopgreen/30 bg-shopgreen/5 p-4">

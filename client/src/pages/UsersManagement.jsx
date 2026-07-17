@@ -3,7 +3,14 @@ import api from "../api/axios";
 
 const UsersManagement = () => {
   const [users, setUsers] = useState([]);
-  const [form, setForm] = useState({ name: "", email: "", password: "", role: "salesman", phone: "" });
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    role: "salesman",
+    phone: "",
+    visitAccess: { distributed: false, empty: false, missing: false },
+  });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -21,7 +28,14 @@ const UsersManagement = () => {
     try {
       await api.post("/auth/register", form);
       setMessage(`Account created for ${form.name}`);
-      setForm({ name: "", email: "", password: "", role: "salesman", phone: "" });
+      setForm({
+        name: "",
+        email: "",
+        password: "",
+        role: "salesman",
+        phone: "",
+        visitAccess: { distributed: false, empty: false, missing: false },
+      });
       loadUsers();
     } catch (err) {
       setError(err.response?.data?.message || "Could not create account");
@@ -86,7 +100,20 @@ const UsersManagement = () => {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="label">Role</label>
-                <select className="input-field" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
+                <select
+                  className="input-field"
+                  value={form.role}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      role: e.target.value,
+                      visitAccess:
+                        e.target.value === "salesman"
+                          ? prev.visitAccess
+                          : { distributed: true, empty: true, missing: true },
+                    }))
+                  }
+                >
                   <option value="second_owner">Second Owner</option>
                   <option value="salesman">Salesman</option>
                 </select>
@@ -96,6 +123,35 @@ const UsersManagement = () => {
                 <input className="input-field" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
               </div>
             </div>
+            {form.role === "salesman" && (
+              <div className="rounded-lg border border-teal-100 bg-teal-50 p-3">
+                <p className="text-sm font-semibold text-ink">Allow this salesman to record</p>
+                <div className="mt-2 space-y-2 text-sm text-slate-700">
+                  {[
+                    { key: "distributed", label: "1. Distributed bottle amount" },
+                    { key: "empty", label: "2. Empty bottle amount" },
+                    { key: "missing", label: "3. Missing bottle amount" },
+                  ].map((item) => (
+                    <label key={item.key} className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(form.visitAccess?.[item.key])}
+                        onChange={() =>
+                          setForm((prev) => ({
+                            ...prev,
+                            visitAccess: {
+                              ...prev.visitAccess,
+                              [item.key]: !prev.visitAccess?.[item.key],
+                            },
+                          }))
+                        }
+                      />
+                      <span>{item.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
             {error && <p className="text-sm font-medium text-shopred">{error}</p>}
             {message && <p className="text-sm font-medium text-shopgreen">{message}</p>}
             <button className="btn-primary">Create account</button>
