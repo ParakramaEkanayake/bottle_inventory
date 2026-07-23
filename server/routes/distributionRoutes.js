@@ -43,7 +43,7 @@ router.get("/route/:routeId", protect, async (req, res) => {
     const route = await Route.findById(req.params.routeId);
     if (!route) return res.status(404).json({ message: "Route not found" });
 
-    const shops = await Shop.find({ route: req.params.routeId, active: true }).sort({ name: 1 });
+    const shops = await Shop.find({ route: req.params.routeId, active: true }).sort({ order: 1, createdAt: 1 });
     const visits = await Distribution.find({ route: req.params.routeId, visitDate: date });
     const visitByShop = {};
     visits.forEach((v) => (visitByShop[v.shop.toString()] = v));
@@ -87,7 +87,16 @@ router.post("/", protect, allowRoles("salesman", "second_owner", "owner"), async
   // Note: sequential (non-transactional) updates, so this works against a plain
   // standalone MongoDB instance too, not just a replica set.
   try {
-    const { shopId, date, distributed = {}, emptyCollected = {}, missing = {}, notes = "" } = req.body;
+    const {
+      shopId,
+      date,
+      distributed = {},
+      emptyCollected = {},
+      missing = {},
+      agentPrice = {},
+      shopPrice = {},
+      notes = "",
+    } = req.body;
     if (!shopId) return res.status(400).json({ message: "shopId is required" });
     const visitDate = date || todayStr();
 
@@ -104,13 +113,23 @@ router.post("/", protect, allowRoles("salesman", "second_owner", "owner"), async
     const incDist = {};
     const incEmpty = {};
     const incMiss = {};
-    BOTTLE_TYPES.forEach((t) => {
+    const incAgentPrice = {};
+    const incShopPrice = {};
+    for (const t of BOTTLE_TYPES) {
       incDist[t] = Math.max(0, Number(distributed[t] || 0));
       incEmpty[t] = Math.max(0, Number(emptyCollected[t] || 0));
       incMiss[t] = Math.max(0, Number(missing[t] || 0));
-    });
+      incAgentPrice[t] = Number(agentPrice[t] || 0);
+      incShopPrice[t] = Number(shopPrice[t] || 0);
+      if (incDist[t] > 0 && (incAgentPrice[t] <= 0 || incShopPrice[t] <= 0)) {
+        return res.status(400).json({
+          message: `Please provide agentPrice and shopPrice for ${t} when distributing bottles.`,
+        });
+      }
+    }
 
     let revenueDelta = 0;
+    let profitDelta = 0;
     const remainingAfter = {};
     for (const t of BOTTLE_TYPES) {
       const stockDoc = stockByType[t];
@@ -121,8 +140,13 @@ router.post("/", protect, allowRoles("salesman", "second_owner", "owner"), async
             .json({ message: `Not enough ${t} stock in the warehouse (have ${stockDoc.quantity}, tried to give ${incDist[t]})` });
         }
         stockDoc.quantity -= incDist[t];
-        revenueDelta += incDist[t] * stockDoc.sellPrice;
       }
+
+      const revenueForType = incDist[t] * incShopPrice[t];
+      const costForType = incDist[t] * incAgentPrice[t];
+      revenueDelta += revenueForType;
+      profitDelta += revenueForType - costForType;
+
       const before = shop.outstanding[t] || 0;
       const after = before + incDist[t] - incEmpty[t] - incMiss[t];
       remainingAfter[t] = Math.max(0, after);
@@ -134,14 +158,25 @@ router.post("/", protect, allowRoles("salesman", "second_owner", "owner"), async
 
     let responseBody;
     if (existing) {
-      // Add this delivery's numbers on top of what was already recorded today.
+      existing.agentPrice = existing.agentPrice || { "190ml": 0, "250ml": 0 };
+      existing.shopPrice = existing.shopPrice || { "190ml": 0, "250ml": 0 };
+      existing.profit = existing.profit || 0;
+
       BOTTLE_TYPES.forEach((t) => {
-        existing.distributed[t] = (existing.distributed[t] || 0) + incDist[t];
+        const previousQty = existing.distributed[t] || 0;
+        const newQty = previousQty + incDist[t];
+        existing.distributed[t] = newQty;
         existing.emptyCollected[t] = (existing.emptyCollected[t] || 0) + incEmpty[t];
         existing.missing[t] = (existing.missing[t] || 0) + incMiss[t];
         existing.remainingAfter[t] = remainingAfter[t];
+
+        if (incDist[t] > 0) {
+          existing.agentPrice[t] = incAgentPrice[t] || existing.agentPrice[t];
+          existing.shopPrice[t] = incShopPrice[t] || existing.shopPrice[t];
+        }
       });
       existing.revenue = (existing.revenue || 0) + revenueDelta;
+      existing.profit = existing.profit + profitDelta;
       existing.status = "completed";
       if (notes) existing.notes = notes;
       await existing.save();
@@ -157,6 +192,9 @@ router.post("/", protect, allowRoles("salesman", "second_owner", "owner"), async
         missing: incMiss,
         remainingAfter,
         revenue: revenueDelta,
+        agentPrice: incAgentPrice,
+        shopPrice: incShopPrice,
+        profit: profitDelta,
         status: "completed",
         notes,
       });
@@ -190,7 +228,22 @@ router.get("/history", protect, async (req, res) => {
     .populate("salesman", "name")
     .sort({ visitDate: -1, createdAt: -1 })
     .limit(500);
-  res.json(history);
+
+  const isOwner = req.user.email?.toLowerCase() === "owner@bottlesupplier.lk";
+  const sanitized = history.map((record) => {
+    if (isOwner) return record;
+    const safe = record.toObject();
+    delete safe.distributed;
+    delete safe.emptyCollected;
+    delete safe.missing;
+    delete safe.agentPrice;
+    delete safe.shopPrice;
+    delete safe.profit;
+    delete safe.salesman;
+    return safe;
+  });
+
+  res.json(sanitized);
 });
 
 module.exports = router;

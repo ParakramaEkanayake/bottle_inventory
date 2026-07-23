@@ -103,6 +103,20 @@ const RoutesShops = () => {
     }
   };
 
+  const canAddRoutes =
+    user?.role === "owner" ||
+    user?.role === "second_owner" ||
+    (user?.role === "salesman" && user?.canAddRoutesShops);
+
+  if (user?.role === "salesman" && !user?.canAddRoutesShops) {
+    return (
+      <div>
+        <h1 className="font-display text-2xl font-bold text-ink">Routes & Shops</h1>
+        <p className="mt-1 text-sm text-slate-500">You do not have permission to manage routes and shops.</p>
+      </div>
+    );
+  }
+
   return (
     <div>
       <h1 className="font-display text-2xl font-bold text-ink">Routes &amp; Shops</h1>
@@ -269,6 +283,7 @@ const RoutesShops = () => {
           <table className="w-full text-left text-sm border-collapse">
             <thead>
               <tr className="text-xs uppercase tracking-wide text-teal-500 divide-x divide-slate-200">
+                <th className="px-5 py-2">#</th>
                 <th className="px-5 py-2">Shop</th>
                 <th className="px-5 py-2">Route</th>
                 <th className="px-5 py-2">Owner</th>
@@ -281,6 +296,7 @@ const RoutesShops = () => {
             <tbody className="divide-y divide-slate-100">
                   {shops.map((s) => (
                 <tr key={s._id} className="divide-x divide-slate-100">
+                  <td className="px-5 py-2 text-slate-500">{s.order || "-"}</td>
                   <td className="px-5 py-2 font-medium text-ink">{s.name}</td>
                   <td className="px-5 py-2 text-slate-500">{s.route?.name}</td>
                   <td className="px-5 py-2 text-slate-500">{s.ownerName || "-"}</td>

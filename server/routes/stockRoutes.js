@@ -1,7 +1,7 @@
 const express = require("express");
 const Stock = require("../models/Stock");
 const StockTransaction = require("../models/StockTransaction");
-const { protect, allowRoles } = require("../middleware/auth");
+const { protect, allowRoles, allowEmail } = require("../middleware/auth");
 
 const router = express.Router();
 
@@ -73,5 +73,59 @@ router.patch("/:bottleType/price", protect, allowRoles("owner"), async (req, res
     res.status(500).json({ message: "Update failed", error: err.message });
   }
 });
+
+// PATCH /api/stock/transactions/:id  (owner@bottlesupplier.lk only) — correct a stock purchase entry and adjust live stock.
+router.patch(
+  "/transactions/:id",
+  protect,
+  allowRoles("owner"),
+  allowEmail("owner@bottlesupplier.lk"),
+  async (req, res) => {
+    try {
+      const { quantity, noOfCases, note } = req.body;
+      const transaction = await StockTransaction.findById(req.params.id);
+      if (!transaction) {
+        return res.status(404).json({ message: "Transaction not found" });
+      }
+
+      const stock = await Stock.findOne({ bottleType: transaction.bottleType });
+      if (!stock) {
+        return res.status(404).json({ message: "Stock item not found" });
+      }
+
+      let updatedQuantity = transaction.quantity;
+      if (quantity !== undefined) {
+        const qtyValue = Number(quantity);
+        if (!qtyValue || qtyValue <= 0) {
+          return res.status(400).json({ message: "quantity must be a positive number" });
+        }
+        updatedQuantity = qtyValue;
+      }
+
+      const quantityDiff = updatedQuantity - transaction.quantity;
+      const newStockQuantity = stock.quantity + quantityDiff;
+      if (newStockQuantity < 0) {
+        return res.status(400).json({ message: "Stock quantity cannot become negative" });
+      }
+
+      transaction.quantity = updatedQuantity;
+      if (noOfCases !== undefined) {
+        transaction.noOfCases = Number(noOfCases) || transaction.noOfCases;
+      }
+      if (note !== undefined) {
+        transaction.note = note;
+      }
+      transaction.totalCost = transaction.quantity * transaction.costPricePerUnit;
+      await transaction.save();
+
+      stock.quantity = newStockQuantity;
+      await stock.save();
+
+      res.json({ stock, transaction });
+    } catch (err) {
+      res.status(500).json({ message: "Could not update transaction", error: err.message });
+    }
+  }
+);
 
 module.exports = router;

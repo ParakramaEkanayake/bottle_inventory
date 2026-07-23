@@ -29,7 +29,7 @@ function App() {
           />
           <Route
             path="/routes-shops"
-            element={<ProtectedRoute allowedRoles={["owner", "second_owner"]}><RoutesShops /></ProtectedRoute>}
+            element={<ProtectedRoute allowedRoles={["owner", "second_owner", "salesman"]}><RoutesShops /></ProtectedRoute>}
           />
           <Route
             path="/expenses"

@@ -7,6 +7,7 @@ const ShopSchema = new mongoose.Schema(
     address: { type: String, default: "" },
     contactNumber: { type: String, default: "" },
     ownerName: { type: String, default: "" },
+    order: { type: Number, default: 0 },
     active: { type: Boolean, default: true },
     // Running balance of bottles currently out at this shop (given but not yet returned as empty/written off).
     outstanding: {

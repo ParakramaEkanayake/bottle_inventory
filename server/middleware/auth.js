@@ -29,4 +29,12 @@ const allowRoles = (...roles) => (req, res, next) => {
   next();
 };
 
-module.exports = { protect, allowRoles };
+// Restricts a route to a specific user email address.
+const allowEmail = (email) => (req, res, next) => {
+  if (!req.user || req.user.email?.toLowerCase() !== email.toLowerCase()) {
+    return res.status(403).json({ message: "You do not have permission to do this" });
+  }
+  next();
+};
+
+module.exports = { protect, allowRoles, allowEmail };

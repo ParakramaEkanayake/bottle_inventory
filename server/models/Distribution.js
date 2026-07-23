@@ -24,7 +24,16 @@ const DistributionSchema = new mongoose.Schema(
       "190ml": { type: Number, default: 0 },
       "250ml": { type: Number, default: 0 },
     },
-    revenue: { type: Number, default: 0 }, // distributed bottles * sell price, this visit
+    revenue: { type: Number, default: 0 }, // distributed bottles * shop price, this visit
+    agentPrice: {
+      "190ml": { type: Number, default: 0 },
+      "250ml": { type: Number, default: 0 },
+    },
+    shopPrice: {
+      "190ml": { type: Number, default: 0 },
+      "250ml": { type: Number, default: 0 },
+    },
+    profit: { type: Number, default: 0 }, // revenue minus agent cost, this visit
     status: { type: String, enum: ["pending", "completed"], default: "pending" },
     notes: { type: String, default: "" },
   },

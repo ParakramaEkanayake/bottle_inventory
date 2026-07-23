@@ -17,6 +17,7 @@ const UserSchema = new mongoose.Schema(
       empty: { type: Boolean, default: false },
       missing: { type: Boolean, default: false },
     },
+    canAddRoutesShops: { type: Boolean, default: false },
     active: { type: Boolean, default: true },
   },
   { timestamps: true }
@@ -41,6 +42,7 @@ UserSchema.methods.toSafeObject = function () {
     role: this.role,
     phone: this.phone,
     visitAccess: this.visitAccess,
+    canAddRoutesShops: Boolean(this.canAddRoutesShops),
     active: this.active,
   };
 };

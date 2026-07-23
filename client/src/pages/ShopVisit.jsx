@@ -4,6 +4,7 @@ import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 
 const emptyCounts = () => ({ "190ml": "", "250ml": "" });
+const emptyPrices = () => ({ "190ml": "", "250ml": "" });
 
 const ShopVisit = () => {
   const { routeId, shopId } = useParams();
@@ -13,6 +14,8 @@ const ShopVisit = () => {
   const [shop, setShop] = useState(null);
   const [existingVisit, setExistingVisit] = useState(null);
   const [distributed, setDistributed] = useState(emptyCounts());
+  const [agentPrice, setAgentPrice] = useState(emptyPrices());
+  const [shopPrice, setShopPrice] = useState(emptyPrices());
   const [emptyCollected, setEmptyCollected] = useState(emptyCounts());
   const [missing, setMissing] = useState(emptyCounts());
   const [notes, setNotes] = useState("");
@@ -49,6 +52,35 @@ const ShopVisit = () => {
 
   const setField = (setter, type, value) => setter((prev) => ({ ...prev, [type]: value }));
 
+  const calculateDeliveryProfit = () => {
+    return ["190ml", "250ml"].reduce((sum, type) => {
+      const qty = Number(distributed[type] || 0);
+      const agent = Number(agentPrice[type] || 0);
+      const shop = Number(shopPrice[type] || 0);
+      if (qty <= 0) return sum;
+      return sum + qty * (shop - agent);
+    }, 0);
+  };
+
+  const getVisitProfit = (visit) => {
+    if (!visit) return 0;
+    if (typeof visit.profit === "number") return visit.profit;
+    const revenuePrice = ["190ml", "250ml"].reduce((sum, type) => {
+      const qty = Number(visit.distributed?.[type] || 0);
+      const agent = Number(visit.agentPrice?.[type] || 0);
+      const shop = Number(visit.shopPrice?.[type] || 0);
+      if (qty > 0 && agent > 0 && shop > 0) {
+        return sum + qty * (shop - agent);
+      }
+      return sum;
+    }, 0);
+    if (revenuePrice > 0) return revenuePrice;
+    return (
+      (visit.distributed?.["190ml"] || 0) * 15 +
+      (visit.distributed?.["250ml"] || 0) * 35
+    );
+  };
+
   const handleRequirementSubmit = async (e) => {
     e.preventDefault();
     setRequirementMessage("");
@@ -79,6 +111,8 @@ const ShopVisit = () => {
       const res = await api.post("/distributions", {
         shopId,
         distributed,
+        agentPrice,
+        shopPrice,
         emptyCollected,
         missing,
         notes,
@@ -88,6 +122,8 @@ const ShopVisit = () => {
       // Clear the inputs — they represented THIS delivery, which has now been recorded and
       // added onto the day's total. Ready for another delivery if the salesman needs one.
       setDistributed(emptyCounts());
+      setAgentPrice(emptyPrices());
+      setShopPrice(emptyPrices());
       setEmptyCollected(emptyCounts());
       setMissing(emptyCounts());
       api.get(`/stock-requirements/shop/${shopId}`).then((r) => setRequirements(r.data)).catch(() => {});
@@ -213,19 +249,51 @@ const ShopVisit = () => {
             <div className="card p-4">
               <h2 className="font-display font-bold text-ink">1. Distributed bottle amount</h2>
               <p className="text-xs text-slate-500">New full bottles given to the shop right now (this delivery only).</p>
-              <div className="mt-3 grid grid-cols-2 gap-3">
+              <div className="mt-3 grid grid-cols-1 gap-3">
                 {["190ml", "250ml"].map((type) => (
-                  <div key={type}>
-                    <label className="label">{type}</label>
-                    <input
-                      type="number"
-                      min="0"
-                      className="input-field"
-                      value={distributed[type]}
-                      onChange={(e) => setField(setDistributed, type, e.target.value)}
-                    />
+                  <div key={type} className="grid gap-3 md:grid-cols-4 md:items-end">
+                    <div>
+                      <label className="label">{type} quantity</label>
+                      <input
+                        type="number"
+                        min="0"
+                        className="input-field"
+                        value={distributed[type]}
+                        onChange={(e) => setField(setDistributed, type, e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="label">Agent price ({type})</label>
+                      <input
+                        type="number"
+                        min="0"
+                        className="input-field"
+                        value={agentPrice[type]}
+                        onChange={(e) => setField(setAgentPrice, type, e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="label">Shop price ({type})</label>
+                      <input
+                        type="number"
+                        min="0"
+                        className="input-field"
+                        value={shopPrice[type]}
+                        onChange={(e) => setField(setShopPrice, type, e.target.value)}
+                      />
+                    </div>
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                      <p className="text-xs text-slate-500">Profit</p>
+                      <p className={`mt-1 text-lg font-semibold ${Number(distributed[type] || 0) * (Number(shopPrice[type] || 0) - Number(agentPrice[type] || 0)) >= 0 ? "text-shopgreen" : "text-shopred"}`}>
+                        LKR {Number(distributed[type] || 0) * (Number(shopPrice[type] || 0) - Number(agentPrice[type] || 0)).toLocaleString()}
+                      </p>
+                    </div>
                   </div>
                 ))}
+              </div>
+              <div className="mt-4 rounded-lg border border-teal-100 bg-teal-50 p-3">
+                <p className="text-xs text-slate-500">This delivery's profit</p>
+                <p className="mt-1 text-xl font-semibold text-shopgreen">LKR {calculateDeliveryProfit().toLocaleString()}</p>
               </div>
             </div>
           )}
@@ -299,7 +367,18 @@ const ShopVisit = () => {
               <p className="font-display text-lg font-bold text-ink">{saved.remainingAfter["250ml"]}</p>
             </div>
           </div>
-          <p className="mt-3 text-sm font-semibold text-ink">Total revenue from this shop today: LKR {saved.revenue.toLocaleString()}</p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div>
+              <p className="text-sm font-semibold text-ink">Total revenue from this shop today</p>
+              <p className="text-lg text-ink">LKR {saved.revenue.toLocaleString()}</p>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-ink">Current profit from this shop today</p>
+              <p className={`text-lg font-semibold ${getVisitProfit(saved) >= 0 ? "text-shopgreen" : "text-shopred"}`}>
+                LKR {getVisitProfit(saved).toLocaleString()}
+              </p>
+            </div>
+          </div>
         </div>
       )}
     </div>

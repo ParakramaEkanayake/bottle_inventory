@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 
 const StockManagement = () => {
   const { user } = useAuth();
+  const canEditTransactions = user?.email?.toLowerCase() === "owner@bottlesupplier.lk";
   const [stock, setStock] = useState([]);
   const [bottleType, setBottleType] = useState("190ml");
   const [quantity, setQuantity] = useState("");
@@ -13,6 +14,10 @@ const StockManagement = () => {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [transactions, setTransactions] = useState([]);
+  const [editTransactionId, setEditTransactionId] = useState(null);
+  const [editQuantity, setEditQuantity] = useState("");
+  const [editNoOfCases, setEditNoOfCases] = useState("");
+  const [editNote, setEditNote] = useState("");
 
   const bottlesPerCase = {
     "190ml": 24,
@@ -99,8 +104,38 @@ const StockManagement = () => {
       setNoOfCases("");
       setNote("");
       loadStock();
+      loadTransactions();
     } catch (err) {
       setError(err.response?.data?.message || "Could not add stock");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleEditTransaction = async (e) => {
+    e.preventDefault();
+    setError("");
+    setMessage("");
+    if (!editQuantity || Number(editQuantity) <= 0) {
+      setError("Enter a valid corrected quantity");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const res = await api.patch(`/stock/transactions/${editTransactionId}`, {
+        quantity: Number(editQuantity),
+        noOfCases: editNoOfCases === "" ? undefined : Number(editNoOfCases),
+        note: editNote,
+      });
+      setMessage(`Transaction updated and stock adjusted.`);
+      setEditTransactionId(null);
+      setEditQuantity("");
+      setEditNoOfCases("");
+      setEditNote("");
+      loadStock();
+      loadTransactions();
+    } catch (err) {
+      setError(err.response?.data?.message || "Could not update transaction");
     } finally {
       setSubmitting(false);
     }
@@ -231,12 +266,13 @@ const StockManagement = () => {
                   <th className="px-5 py-2 bg-slate-50">Total cost</th>
                   <th className="px-5 py-2 bg-slate-50">Added by</th>
                   <th className="px-5 py-2 bg-slate-50">Note</th>
+                  {canEditTransactions && <th className="px-5 py-2 bg-slate-50">Actions</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {transactions.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="px-5 py-4 text-slate-500">No purchase history found.</td>
+                    <td colSpan={canEditTransactions ? 9 : 8} className="px-5 py-4 text-slate-500">No purchase history found.</td>
                   </tr>
                 )}
                 {transactions.map((t) => (
@@ -249,11 +285,81 @@ const StockManagement = () => {
                     <td className="px-5 py-3">LKR {t.totalCost?.toLocaleString()}</td>
                     <td className="px-5 py-3">{t.addedBy?.name || "-"}</td>
                     <td className="px-5 py-3">{t.note || "-"}</td>
+                    {canEditTransactions && (
+                      <td className="px-5 py-3">
+                        <button
+                          className="btn-secondary"
+                          type="button"
+                          onClick={() => {
+                            setEditTransactionId(t._id);
+                            setEditQuantity(t.quantity.toString());
+                            setEditNoOfCases(t.noOfCases?.toString() || "");
+                            setEditNote(t.note || "");
+                          }}
+                        >
+                          Edit
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+
+          {canEditTransactions && editTransactionId && (
+            <div className="mt-6 border-t border-slate-200 pt-5">
+              <h3 className="font-display text-base font-semibold text-ink">Correct stock purchase</h3>
+              <p className="text-xs text-slate-500">Only owner@bottlesupplier.lk can update this record and adjust current stock.</p>
+              <form onSubmit={handleEditTransaction} className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-4">
+                <div>
+                  <label className="label">Correct quantity</label>
+                  <input
+                    type="number"
+                    className="input-field"
+                    value={editQuantity}
+                    onChange={(e) => setEditQuantity(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="label">Correct no of cases</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="input-field"
+                    value={editNoOfCases}
+                    onChange={(e) => setEditNoOfCases(e.target.value)}
+                  />
+                </div>
+                <div className="md:col-span-1">
+                  <label className="label">Note</label>
+                  <input
+                    type="text"
+                    className="input-field"
+                    value={editNote}
+                    onChange={(e) => setEditNote(e.target.value)}
+                  />
+                </div>
+                <div className="md:col-span-4">
+                  <button type="submit" disabled={submitting} className="btn-primary">
+                    {submitting ? "Saving..." : "Save correction"}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-secondary ml-3"
+                    onClick={() => {
+                      setEditTransactionId(null);
+                      setEditQuantity("");
+                      setEditNoOfCases("");
+                      setEditNote("");
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
         </div>
       )}
     </div>

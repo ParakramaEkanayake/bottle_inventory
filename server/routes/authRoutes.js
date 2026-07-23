@@ -38,7 +38,7 @@ router.get("/me", protect, async (req, res) => {
 // POST /api/auth/register  (owner only — creates second owners / salesmen)
 router.post("/register", protect, allowRoles("owner"), async (req, res) => {
   try {
-    const { name, email, password, role, phone, visitAccess } = req.body;
+    const { name, email, password, role, phone, visitAccess, canAddRoutesShops } = req.body;
     if (!name || !email || !password || !role) {
       return res.status(400).json({ message: "Name, email, password and role are required" });
     }
@@ -61,7 +61,20 @@ router.post("/register", protect, allowRoles("owner"), async (req, res) => {
             missing: true,
           };
 
-    const user = await User.create({ name, email, password, role, phone, visitAccess: normalizedVisitAccess });
+    const userData = {
+      name,
+      email,
+      password,
+      role,
+      phone,
+      visitAccess: normalizedVisitAccess,
+    };
+
+    if (role === "salesman") {
+      userData.canAddRoutesShops = Boolean(canAddRoutesShops);
+    }
+
+    const user = await User.create(userData);
     res.status(201).json({ user: user.toSafeObject() });
   } catch (err) {
     res.status(500).json({ message: "Could not create user", error: err.message });

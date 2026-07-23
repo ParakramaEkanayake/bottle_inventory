@@ -10,6 +10,7 @@ const UsersManagement = () => {
     role: "salesman",
     phone: "",
     visitAccess: { distributed: false, empty: false, missing: false },
+    canAddRoutesShops: false,
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -35,6 +36,7 @@ const UsersManagement = () => {
         role: "salesman",
         phone: "",
         visitAccess: { distributed: false, empty: false, missing: false },
+        canAddRoutesShops: false,
       });
       loadUsers();
     } catch (err) {
@@ -124,31 +126,47 @@ const UsersManagement = () => {
               </div>
             </div>
             {form.role === "salesman" && (
-              <div className="rounded-lg border border-teal-100 bg-teal-50 p-3">
-                <p className="text-sm font-semibold text-ink">Allow this salesman to record</p>
-                <div className="mt-2 space-y-2 text-sm text-slate-700">
-                  {[
-                    { key: "distributed", label: "1. Distributed bottle amount" },
-                    { key: "empty", label: "2. Empty bottle amount" },
-                    { key: "missing", label: "3. Missing bottle amount" },
-                  ].map((item) => (
-                    <label key={item.key} className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={Boolean(form.visitAccess?.[item.key])}
-                        onChange={() =>
-                          setForm((prev) => ({
-                            ...prev,
-                            visitAccess: {
-                              ...prev.visitAccess,
-                              [item.key]: !prev.visitAccess?.[item.key],
-                            },
-                          }))
-                        }
-                      />
-                      <span>{item.label}</span>
-                    </label>
-                  ))}
+              <div className="rounded-lg border border-teal-100 bg-teal-50 p-3 space-y-4">
+                <div>
+                  <p className="text-sm font-semibold text-ink">Allow this salesman to record</p>
+                  <div className="mt-2 space-y-2 text-sm text-slate-700">
+                    {[
+                      { key: "distributed", label: "1. Distributed bottle amount" },
+                      { key: "empty", label: "2. Empty bottle amount" },
+                      { key: "missing", label: "3. Missing bottle amount" },
+                    ].map((item) => (
+                      <label key={item.key} className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(form.visitAccess?.[item.key])}
+                          onChange={() =>
+                            setForm((prev) => ({
+                              ...prev,
+                              visitAccess: {
+                                ...prev.visitAccess,
+                                [item.key]: !prev.visitAccess?.[item.key],
+                              },
+                            }))
+                          }
+                        />
+                        <span>{item.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-ink">Allow this salesman to manage routes and shops</p>
+                  <label className="mt-2 flex items-center gap-2 text-sm text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={form.canAddRoutesShops}
+                      onChange={() => setForm((prev) => ({ ...prev, canAddRoutesShops: !prev.canAddRoutesShops }))}
+                    />
+                    <span>Add routes and shops only</span>
+                  </label>
+                  <p className="mt-2 text-xs text-slate-500">
+                    Salesmen with this permission can create routes and shops, but cannot edit or delete them.
+                  </p>
                 </div>
               </div>
             )}
@@ -162,10 +180,13 @@ const UsersManagement = () => {
           <h2 className="font-display text-lg font-bold text-ink">All employees</h2>
           <ul className="mt-4 divide-y divide-teal-100">
             {users.map((u) => (
-              <li key={u._id} className="flex items-center justify-between py-3 text-sm">
+              <li key={u._id} className="flex flex-col gap-2 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="font-medium text-ink">{u.name}</p>
-                  <p className="text-xs text-slate-500">{u.email} &middot; {u.role.replace("_", " ")}</p>
+                  <p className="text-xs text-slate-500">
+                    {u.email} &middot; {u.role.replace("_", " ")}
+                    {u.role === "salesman" && u.canAddRoutesShops ? " · can add routes/shops" : ""}
+                  </p>
                 </div>
                 {u.role !== "owner" && (
                   <button

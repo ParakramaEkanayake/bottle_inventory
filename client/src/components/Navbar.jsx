@@ -37,7 +37,7 @@ const Navbar = () => {
 
         <nav className="hidden items-center gap-1 md:flex">
           <NavLink to="/" end className={linkClass}>Dashboard</NavLink>
-          {(user.role === "owner" || user.role === "second_owner") && (
+          {(user.role === "owner" || user.role === "second_owner" || user.canAddRoutesShops) && (
             <>
               <NavLink to="/stock" className={linkClass}>Stock</NavLink>
               <NavLink to="/routes-shops" className={linkClass}>Routes &amp; Shops</NavLink>
@@ -61,7 +61,7 @@ const Navbar = () => {
       </div>
       <nav className="flex gap-1 overflow-x-auto border-t border-teal-100 px-4 py-2 md:hidden">
         <NavLink to="/" end className={linkClass}>Dashboard</NavLink>
-        {(user.role === "owner" || user.role === "second_owner") && (
+        {(user.role === "owner" || user.role === "second_owner" || user.canAddRoutesShops) && (
           <>
             <NavLink to="/stock" className={linkClass}>Stock</NavLink>
             <NavLink to="/routes-shops" className={linkClass}>Routes</NavLink>

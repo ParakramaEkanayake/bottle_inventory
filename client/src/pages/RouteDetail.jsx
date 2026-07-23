@@ -116,7 +116,7 @@ const RouteDetail = () => {
               }`}
             >
               <div>
-                <p className="font-display font-bold text-ink">{shop.name}</p>
+                <p className="font-display font-bold text-ink">{shop.order ? `${shop.order}. ${shop.name}` : shop.name}</p>
                 <p className="text-xs text-slate-500">{shop.address || "Kandy"}</p>
                 {isDone && visit && (
                   <p className="mt-1 text-xs text-slate-500">
